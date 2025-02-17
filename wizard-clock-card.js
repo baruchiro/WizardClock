@@ -1,5 +1,5 @@
 var CARDNAME = "wizard-clock-card";
-var VERSION = "0.8.0";
+var VERSION = "0.9.0";
 
 class WizardClockCard extends HTMLElement {
 
@@ -296,17 +296,24 @@ class WizardClockCard extends HTMLElement {
 
           stateStr = this.lostState;
 	}
+        // Check both velocity and proximity for movement
         const stateVelo = state && state.attributes ? (
           state.attributes.velocity ? state.attributes.velocity : (
             state.attributes.moving ? 16 : 0
-          )) : 0; 
+          )) : 0;
+
+        // New: Check proximity direction sensor if configured
+        const isMovingByProximity = wizards[num].proximity_sensor &&
+          this._hass.states[wizards[num].proximity_sensor] &&
+          ['towards', 'away_from'].includes(this._hass.states[wizards[num].proximity_sensor].state);
+
         var locnum;
         var wizardOffset = ((num-((wizards.length-1)/2)) / wizards.length * 0.6);
         var location = wizardOffset; // default
         for (locnum = 0; locnum < locations.length; locnum++){
           if ((locations[locnum].toLowerCase() == stateStr.toLowerCase()) 
-              || (locations[locnum] == this.travellingState && stateVelo > 15)
-              || (locations[locnum] == this.lostState && stateStr == "not_home" && stateVelo <= 15))
+            || (locations[locnum] == this.travellingState && (stateVelo > 15 || isMovingByProximity))
+            || (locations[locnum] == this.lostState && stateStr == "not_home" && stateVelo <= 15 && !isMovingByProximity))
           {
             location = locnum + wizardOffset;
             break;
